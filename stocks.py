@@ -112,20 +112,18 @@ def calc_profit_loss(trades):
 
         # Get the current total position cost at the point of each trade. Store
         # the cummulative sum of all previous rows in Total_Position_Cost column.
-        df_stock_trades["Total_Position_Cost"] = df_stock_trades.apply(
-            lambda x: x["SIZE"] * x["PRICE"]
-            if x["BUY_SELL_FLAG"] == 1
-            else -x["SIZE"] * x["PRICE"],
-            axis=1,
+        df_stock_trades["Total_Position_Cost"] = (
+            df_stock_trades["SIZE"]
+            # map BUY_SELL_FLAG: 1 -> 1, 0 -> -1 for vectorized calculations
+            * (df_stock_trades["BUY_SELL_FLAG"] * 2 - 1)
+            * df_stock_trades["PRICE"]
         ).cumsum()
 
         # Get the current total position size at the point of each trade.
-        df_stock_trades["Total_Position_Size"] = df_stock_trades.apply(
-            lambda x: x["SIZE"] if x["BUY_SELL_FLAG"] == 1 else -x["SIZE"],
-            axis=1,
+        df_stock_trades["Total_Position_Size"] = (
+            df_stock_trades["SIZE"] * (df_stock_trades["BUY_SELL_FLAG"] * 2 - 1)
         ).cumsum()
 
-        # Vectorized calculation of new Profit/Loss (PL) column.
         df_stock_trades["PL"] = (
             df_stock_trades["Total_Position_Size"] * df_stock_trades["PRICE"]
             - df_stock_trades["Total_Position_Cost"]
@@ -133,7 +131,7 @@ def calc_profit_loss(trades):
 
         # Return dictionary of data frames with new PL column for each stock.
         pl[stock] = df_stock_trades
-
+        
     return pl
 
 
@@ -180,7 +178,7 @@ def parse_option(option, current_date):
 
 def price_option(option, current_date, current_price, interest):
     def d1(S, K, t, r, sigma):
-        return (np.log(S / K) + (r + 0.5 * sigma ** 2) * t) / (sigma * np.sqrt(t))
+        return (np.log(S / K) + (r + 0.5 * sigma**2) * t) / (sigma * np.sqrt(t))
 
     def d2(S, K, t, r, sigma):
         return d1(S, K, t, r, sigma) - sigma * np.sqrt(t)
@@ -224,7 +222,7 @@ def price_options(positions):
 
 def calc_greek(greek, option, current_date, current_price, interest):
     def d1(S, K, t, r, sigma):
-        return (np.log(S / K) + (r + sigma ** 2 * 0.5) * t) / (sigma * np.sqrt(t))
+        return (np.log(S / K) + (r + sigma**2 * 0.5) * t) / (sigma * np.sqrt(t))
 
     def d2(S, K, t, r, sigma):
         return d1(S, K, t, r, sigma) - sigma * np.sqrt(t)
